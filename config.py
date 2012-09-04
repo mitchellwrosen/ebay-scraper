@@ -13,6 +13,10 @@ kPhoneIndexSize = 2
 kPhoneIndexCarrier = 3
 kPhoneIndexCondition = 4
 
+# The percentage of sales to trim from either end, before calculating average
+# sale.
+kTrimPercentage = .25
+
 kDatabaseInfo = {
   'host' : 'localhost',
   'user' : 'mitchell',

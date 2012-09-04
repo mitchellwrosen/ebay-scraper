@@ -16,7 +16,7 @@ def Trim(list, pct):
   if chop_num == 0:
     return sorted(list)
   return sorted(list)[chop_num:-chop_num]
-  
+
 '''
 Maps an ebay item condition to a GET parameter.
 '''
@@ -25,3 +25,12 @@ def EbayItemCondition(cond):
     'Used' : ebay_constants.kConditionUsed,
     'New' : ebay_constants.kConditionNew,
   }[cond]
+
+'''
+Generates a urllib2.Request object from a url_info dictionary.
+'''
+def GenerateRequest(url_info):
+  return urllib2.Request(
+      url_info['base_url'] + urllib.urlencode(url_info['get_params'],
+      '',
+      url_info['headers'])
