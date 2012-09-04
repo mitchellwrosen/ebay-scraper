@@ -17,7 +17,7 @@ kDatabaseInfo = {
   'host' : 'localhost',
   'user' : 'mitchell',
   'passwd' : 'password',
-  'db' : 'data',
+  'db' : 'ebay_scraper_data',
 }
 
 # Base URL for an ebay rss feed, including '?'
