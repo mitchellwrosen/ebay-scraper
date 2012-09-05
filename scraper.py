@@ -1,5 +1,5 @@
 import config
-import db_util
+import db_handle
 import ebay_constants
 import util
 from logging import *
@@ -8,7 +8,6 @@ import abc
 import feedparser
 import threading
 import time
-import urllib
 import urllib2
 
 class Scraper(object):
@@ -21,7 +20,7 @@ class Scraper(object):
     self.repeat_every = repeat_every
     self.running = False
 
-  def ParseFeed(self):
+  def FeedEntries(self):
     feed = feedparser.parse(urllib2.urlopen(self.request))
     self.old_latest = feed['entries'][0][self.latest_key]
     for entry in feed['entries']:
@@ -70,21 +69,18 @@ class PhoneBINScraper(PhoneScraper):
     PhoneScraper.__init__(self, db_handle, url_info, phone,
                           repeat_every=repeat_every)
 
+    self.latest = time.localtime()
     self.latest_key = 'published_parsed'
 
-    # Augment url_info['get_params']
-    self.url_info['get_params']['LH_BIN'] = '1'
-    self.url_info['get_params']['_sop'] = '10'  # Sort by: Time: newly listed
+    self.average_sale = -1
 
+    # Augment url_info['get_params'] and intialize request.
+    self.url_info['get_params'][ebay_constants.kGETKeyBIN] = '1'
+    self.url_info['get_params'][ebay_constants.kGETKeySortByTimeNewlyListed] = (
+        ebay_constants.kGETValueSortByTimeNewlyListed)
     self.request = util.GenerateRequest(self.url_info)
 
     self.db_handle.RegisterDatabaseTableListener(self, 'averagesale')
-
-    self.average_sale = -1
-    self.update_average_sale_thread = (
-        threading.Thread(target=self.UpdateAverageSale,
-                         kwargs={'repeat_every' : 15}))
-    self.update_average_sale_thread.start()
 
   # DatabaseHandle.DatabaseTableListener implementation.
   def OnInsert(self, table, columns, values):
@@ -118,13 +114,12 @@ class PhoneBINScraper(PhoneScraper):
           self.id))
       return False
 
-    for entry in self.ParseFeed():
-      if (self.latest is None or
-          entry[self.latest_key] > self.latest):
+    for entry in self.FeedEntries():
+      if (entry[self.latest_key] > self.latest):
         LOG('%s posted on %s for %s' % (
             entry['title'],
             entry['published'],
-            entry[ebay_constants.kKeyBuyItNowPrice]))
+            entry[ebay_constants.kRSSKeyBuyItNowPrice]))
 
       self.latest = self.old_latest
 
@@ -135,30 +130,29 @@ class PhoneEndedScraper(PhoneScraper):
     PhoneScraper.__init__(self, cursor, url_info, phone,
                           repeat_every=repeat_every)
 
-    self.latest_key = ebay_constants.kKeyEndTime
+    self.latest = int(time.time()) * 1000 # eBay does milliseconds since epoch.
+    self.latest_key = ebay_constants.kRSSKeyEndTime
 
-    # Augment url_info['get_params']
+    # Augment url_info['get_params'] and initialize request.
     self.url_info['get_params']['LH_Complete'] = '1'
-
-    self.InitializeRequest()
+    self.request = util.GenerateRequest(self.url_info)
 
   def Scrape(self):
     LOG('PhoneEndedScraper - scraping %s' % self.request.get_full_url())
 
-    for entry in self.ParseFeed():
-      if (self.latest is None or
-          entry[self.latest_key] > self.latest):
-        if int(entry[ebay_constants.kKeyBidCount]) > 0:
-          LOG('%s sold for $%s on %s (%s bids)' % (
-              entry['title'],
-              float(entry[ebay_constants.kKeyCurrentPrice]) / 100.00,
-              entry[ebay_constants.kKeyEndTime],
-              entry[ebay_constants.kKeyBidCount]))
+    for entry in self.FeedEntries():
+      if (entry[self.latest_key] > self.latest):
+        if int(entry[ebay_constants.kRSSKeyBidCount]) > 0:
+          LOG('%s %s sold for $%s on %s (%s bids)' % (
+              self.phone[config.kPhoneIndexBrand],
+              self.phone[config.kPhoneIndexModel],
+              float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00,
+              util.EbayTimeToString(entry[ebay_constants.kRSSKeyEndTime]),
+              entry[ebay_constants.kRSSKeyBidCount]))
 
-          db_util.InsertSale(
-              self.cursor,
+          self.db_handle.InsertSale(
               self.id,
-              float(entry[ebay_constants.kKeyCurrentPrice]) / 100.00)
+              float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00)
 
     self.latest = self.old_latest
 

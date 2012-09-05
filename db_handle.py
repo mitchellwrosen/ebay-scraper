@@ -1,5 +1,8 @@
 from logging import *
+import util
 
+import abc
+import MySQLdb
 import threading
 
 class DatabaseHandle(object):
@@ -19,30 +22,24 @@ class DatabaseHandle(object):
                                 user=database_info['user'],
                                 passwd=database_info['passwd'],
                                 db=database_info['db'])
-    self.cursor = conn.cursor()
+    self.cursor = self.conn.cursor()
     self.lock = threading.Semaphore()
     self.table_listeners = {}
-
-  def __enter__(self):
-    pass
-
-  def __exit__(self):
-    pass
 
   '''
   Register a class to listen to a particular table's changes.
   '''
   def RegisterDatabaseTableListener(self, listener, table):
-    if table in table_listeners:
-      table_listeners[table].append(listener)
+    if table in self.table_listeners:
+      self.table_listeners[table].append(listener)
     else:
-      table_listeners[table] = [listener]
+      self.table_listeners[table] = [listener]
 
   def Select(self, columns, table, cond=None):
     self.lock.acquire()
 
     statement = 'SELECT %s FROM %s' % (', '.join(columns), table)
-    if where is not None:
+    if cond is not None:
       statement += ' WHERE %s' % cond
 
     LOG(statement)
@@ -87,8 +84,11 @@ class PhoneDatabaseHandle(DatabaseHandle):
     if not id:
       self.Insert('phone',
                   ('model', 'brand', 'size', 'carrier', 'cond'),
-                  ('%s', '%s', '%s', '%s', '%s') %
-                      phone[0], phone[1], phone[2], phone[3], phone[4])
+                  ("'%s'" % phone[config.kPhoneIndexModel],
+                   "'%s'" % phone[config.kPhoneIndexBrand],
+                   "'%s'" % phone[config.kPhoneIndexSize],
+                   "'%s'" % phone[config.kPhoneIndexCarrier],
+                   "'%s'" % phone[config.kPhoneIndexCondition]))
 
       id = self.Select(
           ['id'],
@@ -103,10 +103,10 @@ class PhoneDatabaseHandle(DatabaseHandle):
   '''
   def GetAverageSale(self, id):
     average_sale = self.Select(
-        'price',
+        ['price'],
         'averagesale',
         'timestamp=(SELECT MAX(timestamp) FROM averagesale WHERE id=%s)' % id)
-    if not average_sale
+    if not average_sale:
       return -1
 
     return average_sale[0][0]
@@ -116,18 +116,16 @@ class PhoneDatabaseHandle(DatabaseHandle):
   of sales.
   '''
   def InsertAverageSale(self, id):
-    seconds = 30 * 24 * 60 * 60
-
     # Grab the last month of sales
-    sales = self.Select('price',
+    sales = self.Select(['price'],
                         'sale',
-                        'id=%s AND timestamp >= NOW() - %s' % (id, seconds))
+                        'id=%s AND DATEDIFF(date, CURDATE()) <= 30' % (id))
 
     if not sales:
       return False
 
-    average_sale = util.Average(util.Trim(sales, config.kTrimPercentage)
-    self.Insert('averagesale', ('id', 'price'), (id, average_sale))
+    average_sale = util.Average(util.Trim(sales, config.kTrimPercentage))
+    self.Insert('averagesale', ('id', 'price'), (str(id), str(average_sale)))
 
     return True
 
@@ -135,4 +133,10 @@ class PhoneDatabaseHandle(DatabaseHandle):
   Inserts a new sale into the database.
   '''
   def InsertSale(self, id, price):
-    self.Insert('sale', ('id', 'price'), (id, price))
+    self.Insert('sale',
+                ('id', 'price', 'date'),
+                (str(id), str(price), 'CURDATE()'))
+
+  def GetAllIds(self):
+    all_ids = self.Select(['id'], 'phone')
+    return [id for (id,) in all_ids]
