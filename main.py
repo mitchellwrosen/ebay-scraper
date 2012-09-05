@@ -19,4 +19,4 @@ if __name__ == '__main__':
   # Spawn a thread to update averagesale periodically.
   average_sale_updater = average_sale_updater.AverageSaleUpdater(db_handle)
   threading.Thread(target=average_sale_updater.Run,
-                   kwargs={'repeat_every': 1}).start()
+                   kwargs={'repeat_every': 60}).start()

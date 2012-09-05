@@ -52,13 +52,13 @@ class PhoneScraper(Scraper):
     self.url_info['get_params']['_dmpt'] = 'Cell_Phones'
     self.url_info['get_params']['_rss'] = '1'
     self.url_info['get_params']['rt'] = 'nc'
-    self.url_info['get_params']['_sacat'] = '9355'
-    self.url_info['get_params']['_nkw'] = phone[0]
-    self.url_info['get_params']['Brand'] = phone[1]
-    self.url_info['get_params']['Storage Capacity'] = phone[2]
-    self.url_info['get_params']['Carrier'] = phone[3]
-    self.url_info['get_params']['LH_ItemCondition'] = (
-        util.EbayItemCondition(phone[4]))
+    self.url_info['get_params'][ebay_constants.kGETKeyCategory] = (
+        ebay_constants.kGETValueCategoryCellPhonesAndSmartphones)
+    self.url_info['get_params']['_nkw'] = phone.model
+    self.url_info['get_params']['Brand'] = phone.brand
+    self.url_info['get_params']['Storage Capacity'] = phone.storage_capacity
+    self.url_info['get_params']['Carrier'] = phone.carrier
+    self.url_info['get_params']['LH_ItemCondition'] = phone.ebay_cond
 
   @abc.abstractmethod
   def Scrape(self):
@@ -109,8 +109,8 @@ class PhoneBINScraper(PhoneScraper):
     LOG('PhoneBINScraper - scraping %s' % self.request.get_full_url())
     if self.average_sale == -1:
       LOG('No average sale found for %s %s (id %d). Stopping execution.' % (
-          self.phone[config.kPhoneIndexBrand],
-          self.phone[config.kPhoneIndexModel],
+          self.phone.brand,
+          self.phone.model,
           self.id))
       return False
 
@@ -134,7 +134,8 @@ class PhoneEndedScraper(PhoneScraper):
     self.latest_key = ebay_constants.kRSSKeyEndTime
 
     # Augment url_info['get_params'] and initialize request.
-    self.url_info['get_params']['LH_Complete'] = '1'
+    self.url_info['get_params'][ebay_constants.kGETKeyCompleted] = '1'
+    self.url_info['get_params'][ebay_constants.kGETKeySold] = '1'
     self.request = util.GenerateRequest(self.url_info)
 
   def Scrape(self):
@@ -142,17 +143,16 @@ class PhoneEndedScraper(PhoneScraper):
 
     for entry in self.FeedEntries():
       if (entry[self.latest_key] > self.latest):
-        if int(entry[ebay_constants.kRSSKeyBidCount]) > 0:
-          LOG('%s %s sold for $%s on %s (%s bids)' % (
-              self.phone[config.kPhoneIndexBrand],
-              self.phone[config.kPhoneIndexModel],
-              float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00,
-              util.EbayTimeToString(entry[ebay_constants.kRSSKeyEndTime]),
-              entry[ebay_constants.kRSSKeyBidCount]))
+        LOG('%s %s sold for $%s on %s (%s bids)' % (
+            self.phone.brand,
+            self.phone.model,
+            float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00,
+            util.EbayTimeToString(entry[ebay_constants.kRSSKeyEndTime]),
+            entry[ebay_constants.kRSSKeyBidCount]))
 
-          self.db_handle.InsertSale(
-              self.id,
-              float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00)
+        self.db_handle.InsertSale(
+            self.id,
+            float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00)
 
     self.latest = self.old_latest
 

@@ -1,16 +1,18 @@
+DROP TABLE IF EXISTS averagesale;
+DROP TABLE IF EXISTS sale;
 DROP TABLE IF EXISTS phone;
-CREATE TABLE IF NOT EXISTS phone(
+
+CREATE TABLE phone(
   id INT UNSIGNED AUTO_INCREMENT,
   model VARCHAR(30) NOT NULL,
   brand VARCHAR(30) NOT NULL,
-  size VARCHAR(10),
+  storage_capacity VARCHAR(10),
   carrier VARCHAR(30),
   cond ENUM("n/a", "Used", "New", "New other", "For parts") NOT NULL,
   PRIMARY KEY (id)
 );
 
-DROP TABLE IF EXISTS averagesale;
-CREATE TABLE IF NOT EXISTS averagesale(
+CREATE TABLE averagesale(
   id INT UNSIGNED,
   price FLOAT(6,2) NOT NULL,
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -19,8 +21,7 @@ CREATE TABLE IF NOT EXISTS averagesale(
   INDEX(timestamp)
 );
 
-DROP TABLE IF EXISTS sale;
-CREATE TABLE IF NOT EXISTS sale(
+CREATE TABLE sale(
   id INT UNSIGNED,
   price FLOAT(6,2) NOT NULL,
   date DATE NOT NULL,

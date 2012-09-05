@@ -78,23 +78,25 @@ class PhoneDatabaseHandle(DatabaseHandle):
     id = self.Select(
         ['id'],
         'phone',
-        ('model="%s" AND brand="%s" AND size="%s" AND carrier="%s" AND '
-         'cond="%s"') % (phone[0], phone[1], phone[2], phone[3], phone[4]))
+        ('model="%s" AND brand="%s" AND storage_capacity="%s" AND '
+         'carrier="%s" AND cond="%s"') % (phone.model, phone.brand,
+                                          phone.storage_capacity, phone.carrier,
+                                          phone.cond))
 
     if not id:
       self.Insert('phone',
-                  ('model', 'brand', 'size', 'carrier', 'cond'),
-                  ("'%s'" % phone[config.kPhoneIndexModel],
-                   "'%s'" % phone[config.kPhoneIndexBrand],
-                   "'%s'" % phone[config.kPhoneIndexSize],
-                   "'%s'" % phone[config.kPhoneIndexCarrier],
-                   "'%s'" % phone[config.kPhoneIndexCondition]))
+                  ('model', 'brand', 'storage_capacity', 'carrier', 'cond'),
+                  ("'%s'" % phone.model, "'%s'" % phone.brand,
+                   "'%s'" % phone.storage_capacity, "'%s'" % phone.carrier,
+                   "'%s'" % phone.cond))
 
       id = self.Select(
           ['id'],
           'phone',
-          ('model="%s" AND brand="%s" AND size="%s" AND carrier="%s" AND '
-           'cond="%s"') % (phone[0], phone[1], phone[2], phone[3], phone[4]))
+          ('model="%s" AND brand="%s" AND storage_capacity="%s" AND '
+           'carrier="%s" AND cond="%s"') % (phone.model, phone.brand,
+                                            phone.storage_capacity,
+                                            phone.carrier, phone.cond))
 
     return id[0][0]
 

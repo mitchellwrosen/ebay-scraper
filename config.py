@@ -1,17 +1,12 @@
+import phone
+
 # Set to True to output some information to the console.
 kLogging = True
 
 kPhones = [
-   ('Galaxy Nexus', 'Samsung', '32 GB', 'Verizon', 'Used'),
-   #('iPhone 4', 'Apple', '16 GB', 'AT&T', 'New'),
+  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung', '32 GB', 'Verizon', 'Used'),
+  #phone.Phone('iPhone 4', 'Apple', '16 GB', 'AT&T', 'New'),
 ]
-
-# Indexes into phone tuples.
-kPhoneIndexModel = 0
-kPhoneIndexBrand = 1
-kPhoneIndexSize = 2
-kPhoneIndexCarrier = 3
-kPhoneIndexCondition = 4
 
 # The percentage of sales to trim from either end, before calculating average
 # sale.

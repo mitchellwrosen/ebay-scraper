@@ -23,15 +23,6 @@ def Trim(list, pct):
   return sorted(list)[chop_num:-chop_num]
 
 '''
-Maps an ebay item condition to a GET parameter.
-'''
-def EbayItemCondition(cond):
-  return {
-    'Used' : ebay_constants.kConditionUsed,
-    'New' : ebay_constants.kConditionNew,
-  }[cond]
-
-'''
 Generates a urllib2.Request object from a url_info dictionary.
 '''
 def GenerateRequest(url_info):
@@ -43,6 +34,6 @@ def GenerateRequest(url_info):
 '''
 Converts an "eBay time" (milliseconds since epoch) into a human-readable string.
 '''
-def EbayTimeToString(time):
+def EbayTimeToString(ebay_time):
   return time.strftime('%A %b-%d-%Y %H:%M:%S',
-                       time.localtime(time / 1000))
+                       time.localtime(int(ebay_time) / 1000))

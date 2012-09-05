@@ -9,7 +9,6 @@ class AverageSaleUpdater(object):
 
   def Run(self, repeat_every=86400):
     while True:
-      LOG('AverageSaleUpdater')
       for id in self.db_handle.GetAllIds():
         self.db_handle.InsertAverageSale(id)
 
