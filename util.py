@@ -1,6 +1,7 @@
 import ebay_constants
 from logging import *
 
+import random
 import time
 import urllib
 import urllib2
@@ -37,3 +38,10 @@ Converts an "eBay time" (milliseconds since epoch) into a human-readable string.
 def EbayTimeToString(ebay_time):
   return time.strftime('%A %b-%d-%Y %H:%M:%S',
                        time.localtime(int(ebay_time) / 1000))
+
+'''
+Sleep with a random deviation to un-synchronize threads.
+'''
+def Sleep(secs):
+  time.sleep(random.randrange(secs - 1, secs + 2))
+

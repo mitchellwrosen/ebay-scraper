@@ -6,9 +6,10 @@ CREATE TABLE phone(
   id INT UNSIGNED AUTO_INCREMENT,
   model VARCHAR(30) NOT NULL,
   brand VARCHAR(30) NOT NULL,
+  cond ENUM("n/a", "New", "New other", "Manufacturer refurbished", "Seller refurbished", "Used", "For parts") NOT NULL,
   storage_capacity VARCHAR(10),
   carrier VARCHAR(30),
-  cond ENUM("n/a", "Used", "New", "New other", "For parts") NOT NULL,
+  color VARCHAR(20),
   PRIMARY KEY (id)
 );
 

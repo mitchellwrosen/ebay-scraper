@@ -1,11 +1,29 @@
+import ebay_constants
 import phone
 
-# Set to True to output some information to the console.
-kLogging = True
+# 0=None; 1=Errors; 2=Errors,Warnings; 3=Errors,Warnings,Info
+kLogging = 3
 
 kPhones = [
-  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung', '32 GB', 'Verizon', 'Used'),
-  #phone.Phone('iPhone 4', 'Apple', '16 GB', 'AT&T', 'New'),
+  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
+              ebay_constants.kConditionKeyNew, storage_capacity='32 GB',
+              carrier='Verizon'),
+  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
+              ebay_constants.kConditionKeyNewOther, storage_capacity='32 GB',
+              carrier='Verizon'),
+  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
+              ebay_constants.kConditionKeyManufacturerRefurbished,
+              storage_capacity='32 GB', carrier='Verizon'),
+  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
+              ebay_constants.kConditionKeySellerRefurbished,
+              storage_capacity='32 GB', carrier='Verizon'),
+  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
+              ebay_constants.kConditionKeyUsed, storage_capacity='32 GB',
+              carrier='Verizon'),
+  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
+              ebay_constants.kConditionKeyForParts, storage_capacity='32 GB',
+              carrier='Verizon'),
+  phone.Phone('iPhone 4', 'Apple', '16 GB', 'AT&T', 'New'),
 ]
 
 # The percentage of sales to trim from either end, before calculating average

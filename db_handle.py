@@ -42,7 +42,7 @@ class DatabaseHandle(object):
     if cond is not None:
       statement += ' WHERE %s' % cond
 
-    LOG(statement)
+    LOG(INFO, statement)
     self.cursor.execute(statement)
     results = self.cursor.fetchall()
 
@@ -52,17 +52,20 @@ class DatabaseHandle(object):
   def Insert(self, table, columns, values):
     self.lock.acquire()
 
-    statement = 'INSERT INTO %s (%s) VALUES (%s)' % (table,
-                                                     ', '.join(columns),
-                                                     ', '.join(values))
+    statement = 'INSERT INTO %s (%s) VALUES (%s)' % (
+        table,
+        ', '.join(columns),
+        ', '.join([str(value) for value in values]))
 
-    LOG(statement)
+    LOG(INFO, statement)
     self.cursor.execute(statement)
     affected = self.cursor.rowcount
 
     if table in self.table_listeners:
-      for listener in self.table_listeners:
-        listener.OnInsert(table, column, values)
+      for listener in self.table_listeners[table]:
+        threading.Thread(target=listener.OnInsert,
+                         args=(table, columns, values),
+                         name='OnInsert_%s' % table).start()
 
     self.lock.release()
     return affected
@@ -84,11 +87,7 @@ class PhoneDatabaseHandle(DatabaseHandle):
                                           phone.cond))
 
     if not id:
-      self.Insert('phone',
-                  ('model', 'brand', 'storage_capacity', 'carrier', 'cond'),
-                  ("'%s'" % phone.model, "'%s'" % phone.brand,
-                   "'%s'" % phone.storage_capacity, "'%s'" % phone.carrier,
-                   "'%s'" % phone.cond))
+      self.InsertPhone(phone)
 
       id = self.Select(
           ['id'],
@@ -99,6 +98,22 @@ class PhoneDatabaseHandle(DatabaseHandle):
                                             phone.carrier, phone.cond))
 
     return id[0][0]
+
+  def InsertPhone(self, phone):
+    columns = ('model', 'brand', 'cond')
+    values = ("'%s'" % phone.model, "'%s'" & phone.brand, "'%s'" & phone.cond)
+
+    if phone.storage_capacity:
+      columns += ('storage_capacity',)
+      values += ("'%s'" % phone.storage_capacity,)
+
+    for optional in ['storage_capacity', 'carrier', 'color']:
+      val = getattr(phone, optional)
+      if val:
+        columns += (optional,)
+        values += ("'%s'" % val,)
+
+    self.Insert('phone', columns, values)
 
   '''
   Gets the most recent average sale price of a phone with id |id|.
@@ -127,7 +142,7 @@ class PhoneDatabaseHandle(DatabaseHandle):
       return False
 
     average_sale = util.Average(util.Trim(sales, config.kTrimPercentage))
-    self.Insert('averagesale', ('id', 'price'), (str(id), str(average_sale)))
+    self.Insert('averagesale', ('id', 'price'), (id, average_sale))
 
     return True
 
@@ -137,7 +152,7 @@ class PhoneDatabaseHandle(DatabaseHandle):
   def InsertSale(self, id, price):
     self.Insert('sale',
                 ('id', 'price', 'date'),
-                (str(id), str(price), 'CURDATE()'))
+                (id, price, 'CURDATE()'))
 
   def GetAllIds(self):
     all_ids = self.Select(['id'], 'phone')
