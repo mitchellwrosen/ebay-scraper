@@ -39,7 +39,7 @@ class DatabaseHandle(object):
     self.lock.acquire()
 
     statement = 'SELECT %s FROM %s' % (', '.join(columns), table)
-    if cond is not None:
+    if cond:
       statement += ' WHERE %s' % cond
 
     LOG(INFO, statement)
@@ -70,6 +70,20 @@ class DatabaseHandle(object):
     self.lock.release()
     return affected
 
+  def Delete(self, table, cond=None):
+    self.lock.acquire()
+
+    statement = 'DELETE FROM %s' % table
+    if cond:
+      statement += ' WHERE %s' % cond
+
+    LOG(INFO, statement)
+    self.cursor.execute(statement)
+    affected = self.cursor.rowcount
+
+    self.lock.release()
+    return affected
+
 class PhoneDatabaseHandle(DatabaseHandle):
   def __init__(self, database_info):
     super(PhoneDatabaseHandle, self).__init__(database_info)
@@ -78,40 +92,28 @@ class PhoneDatabaseHandle(DatabaseHandle):
   Gets the id of a phone. Inserts a new entry into the database if necessary.
   '''
   def GetId(self, phone):
-    id = self.Select(
-        ['id'],
-        'phone',
-        ('model="%s" AND brand="%s" AND storage_capacity="%s" AND '
-         'carrier="%s" AND cond="%s"') % (phone.model, phone.brand,
-                                          phone.storage_capacity, phone.carrier,
-                                          phone.cond))
+    cond = 'model="%s" AND brand="%s" AND cond="%s" AND carrier="%s"' % (
+        phone.model, phone.brand, phone.cond, phone.carrier)
+    for optional in ['storage_capacity', 'color']:
+      if hasattr(phone, optional):
+        cond += ' AND %s="%s"' % (optional, getattr(phone, optional))
 
+    id = self.Select(['id'], 'phone', cond=cond)
     if not id:
       self.InsertPhone(phone)
-
-      id = self.Select(
-          ['id'],
-          'phone',
-          ('model="%s" AND brand="%s" AND storage_capacity="%s" AND '
-           'carrier="%s" AND cond="%s"') % (phone.model, phone.brand,
-                                            phone.storage_capacity,
-                                            phone.carrier, phone.cond))
+      id = self.Select(['id'], 'phone', cond=cond)
 
     return id[0][0]
 
   def InsertPhone(self, phone):
-    columns = ('model', 'brand', 'cond')
-    values = ("'%s'" % phone.model, "'%s'" & phone.brand, "'%s'" & phone.cond)
+    columns = ('model', 'brand', 'cond', 'carrier')
+    values = ("'%s'" % phone.model, "'%s'" % phone.brand, "'%s'" % phone.cond,
+              "'%s'" % phone.carrier)
 
-    if phone.storage_capacity:
-      columns += ('storage_capacity',)
-      values += ("'%s'" % phone.storage_capacity,)
-
-    for optional in ['storage_capacity', 'carrier', 'color']:
-      val = getattr(phone, optional)
-      if val:
+    for optional in ['storage_capacity', 'color']:
+      if hasattr(phone, optional):
         columns += (optional,)
-        values += ("'%s'" % val,)
+        values += ("'%s'" % getattr(phone, optional),)
 
     self.Insert('phone', columns, values)
 
@@ -122,7 +124,8 @@ class PhoneDatabaseHandle(DatabaseHandle):
     average_sale = self.Select(
         ['price'],
         'averagesale',
-        'timestamp=(SELECT MAX(timestamp) FROM averagesale WHERE id=%s)' % id)
+        cond='timestamp=(SELECT MAX(timestamp) FROM averagesale WHERE id=%s)' %
+            id)
     if not average_sale:
       return -1
 
@@ -136,7 +139,7 @@ class PhoneDatabaseHandle(DatabaseHandle):
     # Grab the last month of sales
     sales = self.Select(['price'],
                         'sale',
-                        'id=%s AND DATEDIFF(date, CURDATE()) <= 30' % (id))
+                        cond='id=%s AND DATEDIFF(date, CURDATE()) <= 30' % (id))
 
     if not sales:
       return False
@@ -145,6 +148,16 @@ class PhoneDatabaseHandle(DatabaseHandle):
     self.Insert('averagesale', ('id', 'price'), (id, average_sale))
 
     return True
+
+  '''
+  Purges the database of all sales less than 10% of the phone's average sale.
+  '''
+  def TrimSales(self, id, pct=.10):
+    average_sale = self.GetAverageSale(id)
+    if average_sale == -1:
+      return
+
+    self.Delete('sale', cond='price < %s * %s' % (average_sale, pct))
 
   '''
   Inserts a new sale into the database.

@@ -5,7 +5,7 @@ WARNING = 2
 INFO = 3
 
 def LOG(type_,  msg):
-  if config.kLogging and type_ >= config.kLogging:
+  if config.kLogging and type_ <= config.kLogging:
     print '%s %s' % ({
       INFO: 'INFO:',
       WARNING: 'WARNING:',

@@ -24,13 +24,22 @@ def Trim(list, pct):
   return sorted(list)[chop_num:-chop_num]
 
 '''
-Generates a urllib2.Request object from a url_info dictionary.
+Generates a urllib2.Request object from a url_info dictionary. The search term
+(model) is treated separately, because spaces expand to %20 and not %2520.
 '''
-def GenerateRequest(url_info):
-  return urllib2.Request(
-      url_info['base_url'] + urllib.urlencode(url_info['get_params']),
-      '',
-      url_info['headers'])
+def GenerateRequest(url_info, search):
+  get_params = urllib.urlencode(url_info['get_params'])
+
+  # Replace all + with ' ' and all %xx with %25xx, cause eBay.
+  get_params = get_params.replace('+', '%20')
+  get_params = get_params.replace('%', '%25')
+
+  # Tack on search string (model).
+  get_params += urllib.urlencode({'_nkw': search}).replace('+', '%20')
+
+  return urllib2.Request(url_info['base_url'] + '?' + get_params,
+                         '',
+                         url_info['headers'])
 
 '''
 Converts an "eBay time" (milliseconds since epoch) into a human-readable string.

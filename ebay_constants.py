@@ -30,3 +30,8 @@ kConditionValueManufacturerRefurbished = '2000'
 kConditionValueSellerRefurbished = '2500'
 kConditionValueUsed = '3000'
 kConditionValueForParts = '7000'
+
+kAllConditions = [kConditionKeyNew, kConditionKeyNewOther,
+                  kConditionKeyManufacturerRefurbished,
+                  kConditionKeySellerRefurbished, kConditionKeyUsed,
+                  kConditionKeyForParts]

@@ -11,6 +11,7 @@ class AverageSaleUpdater(object):
     while True:
       LOG(INFO, 'Updating all average sales...')
       for id in self.db_handle.GetAllIds():
+        self.db_handle.TrimSales(id)
         self.db_handle.InsertAverageSale(id)
 
       util.Sleep(repeat_every)

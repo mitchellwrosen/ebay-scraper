@@ -4,27 +4,37 @@ import phone
 # 0=None; 1=Errors; 2=Errors,Warnings; 3=Errors,Warnings,Info
 kLogging = 3
 
-kPhones = [
-  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
-              ebay_constants.kConditionKeyNew, storage_capacity='32 GB',
-              carrier='Verizon'),
-  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
-              ebay_constants.kConditionKeyNewOther, storage_capacity='32 GB',
-              carrier='Verizon'),
-  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
-              ebay_constants.kConditionKeyManufacturerRefurbished,
-              storage_capacity='32 GB', carrier='Verizon'),
-  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
-              ebay_constants.kConditionKeySellerRefurbished,
-              storage_capacity='32 GB', carrier='Verizon'),
-  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
-              ebay_constants.kConditionKeyUsed, storage_capacity='32 GB',
-              carrier='Verizon'),
-  phone.Phone('Galaxy Nexus SCH-I515', 'Samsung',
-              ebay_constants.kConditionKeyForParts, storage_capacity='32 GB',
-              carrier='Verizon'),
-  phone.Phone('iPhone 4', 'Apple', '16 GB', 'AT&T', 'New'),
+
+# In main.py, populate kPhones with a call to PopulatePhones() for each phone in
+# kPhoneTemplates.
+kPhones = []
+kPhoneTemplates = [
+  {
+    'model': 'Galaxy Nexus',
+    'brand': 'Samsung',
+    'conditions': ebay_constants.kAllConditions,
+    'carriers': ['Sprint', 'Unlocked', 'Verizon'],
+    'storage_capacities': ['16GB', '32 GB'],
+    'colors': [None],
+  },
+  {
+    'model': 'iPhone 4S',
+    'brand': 'Apple',
+    'conditions': ebay_constants.kAllConditions,
+    'carriers': ['AT&T', 'Sprint', 'Unlocked', 'Verizon'],
+    'storage_capacities': ['16 GB', '32 GB', '64 GB'],
+    'colors': ['White', 'Black'],
+  }
 ]
+def PopulatePhones(model, brand, conditions, carriers, storage_capacities,
+                   colors):
+  for color in colors:
+    for storage_capacity in storage_capacities:
+      for carrier in carriers:
+        for cond in conditions:
+          kPhones.append(phone.Phone(model, brand, cond, carrier,
+                                     storage_capacity=storage_capacity,
+                                     color=color))
 
 # The percentage of sales to trim from either end, before calculating average
 # sale.
@@ -38,7 +48,7 @@ kDatabaseInfo = {
 }
 
 kUrlInfo = {
-  'base_url': 'http://www.ebay.com/sch/rss/?',
+  'base_url': 'http://www.ebay.com/sch/rss/',
   'get_params': {},
   'headers': {
     # Chrome 22 user agent string, cause I'm hella cool like that.

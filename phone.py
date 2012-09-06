@@ -1,13 +1,13 @@
 import ebay_constants
 
 class Phone(object):
-  def __init__(self, model, brand, cond, storage_capacity=None, carrier=None,
+  def __init__(self, model, brand, cond, carrier, storage_capacity=None,
                color=None):
     self.model = model
     self.brand = brand
     self.cond = cond
-    self.storage_capacity = storage_capacity
     self.carrier = carrier
+    self.storage_capacity = storage_capacity
     self.color = color
 
     self.ebay_cond = {
@@ -18,3 +18,8 @@ class Phone(object):
       ebay_constants.kConditionKeyUsed: ebay_constants.kConditionValueUsed,
       ebay_constants.kConditionKeyForParts: ebay_constants.kConditionValueForParts,
     }[self.cond]
+
+  def ToString(self):
+    attrs = [self.model, self.brand, self.cond, self.carrier,
+             self.storage_capacity, self.color]
+    return '_'.join([attr for attr in attrs if attr]).replace(' ', '_')

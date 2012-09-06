@@ -17,6 +17,8 @@ class Scraper(object):
     self.db_handle = db_handle
     self.url_info = url_info
     self.latest = None
+
+    self.name = None
     self.repeat_every = repeat_every
     self.running = False
 
@@ -27,11 +29,13 @@ class Scraper(object):
       yield entry
 
   def Run(self):
-    LOG(INFO, 'Thread "%s" begun.' % threading.current_thread().name)
+    if not self.name:
+      self.name = threading.current_thread().name
+    LOG(INFO, '%s: Running.' % self.name)
     self.running = True
     while True:
       if not self.Scrape():
-        LOG(INFO, 'Thread "%s" stopping.' % threading.current_thread().name)
+        LOG(INFO, '%s: Stopping.' % self.name)
         self.running = False
         break
       util.Sleep(self.repeat_every)
@@ -55,13 +59,15 @@ class PhoneScraper(Scraper):
     self.url_info['get_params']['rt'] = 'nc'
     self.url_info['get_params'][ebay_constants.kGETKeyCategory] = (
         ebay_constants.kGETValueCategoryCellPhonesAndSmartphones)
-    self.url_info['get_params']['_nkw'] = phone.model
     self.url_info['get_params']['Brand'] = phone.brand
     self.url_info['get_params']['Storage Capacity'] = phone.storage_capacity
     self.url_info['get_params']['Carrier'] = phone.carrier
     self.url_info['get_params'][ebay_constants.kGETKeyItemCondition] = (
         phone.ebay_cond)
 
+  '''
+  Do work. Retun true to continue doing work, false to stop.
+  '''
   @abc.abstractmethod
   def Scrape(self):
     return
@@ -73,8 +79,6 @@ class PhoneBINScraper(PhoneScraper):
 
     self.latest = time.gmtime()
     self.latest_key = 'updated_parsed'
-    LOG(INFO, 'self.latest = %s' % time.strftime('%a, %d %b %Y %H:%M:%S',
-                                                 self.latest))
 
     self.average_sale = -1
 
@@ -82,7 +86,7 @@ class PhoneBINScraper(PhoneScraper):
     self.url_info['get_params'][ebay_constants.kGETKeyBIN] = '1'
     self.url_info['get_params'][ebay_constants.kGETKeySortByTimeNewlyListed] = (
         ebay_constants.kGETValueSortByTimeNewlyListed)
-    self.request = util.GenerateRequest(self.url_info)
+    self.request = util.GenerateRequest(self.url_info, self.phone.model)
 
     self.db_handle.RegisterDatabaseTableListener(self, 'averagesale')
 
@@ -90,28 +94,26 @@ class PhoneBINScraper(PhoneScraper):
   def OnInsert(self, table, columns, values):
     if columns[0] == 'id' and values[0] == self.id:
       self.average_sale = self.db_handle.GetAverageSale(self.id)
-      LOG(INFO, 'Updating average sale - now %s' % self.average_sale)
+      LOG(INFO, '%s: Updating average sale to %s' % (self.name,
+                                                     self.average_sale))
       if not self.running and self.average_sale != -1:
-        LOG(INFO, 'PhoneBINScraper running again.')
         self.Run()
 
   def Scrape(self):
-    LOG(INFO, 'PhoneBINScraper - scraping %s' % self.request.get_full_url())
+    LOG(INFO, '%s: Scraping %s' % (self.name, self.request.get_full_url()))
     if self.average_sale == -1:
-      LOG(INFO, 'No average sale found for %s %s (id %d).'
-          % (self.phone.brand, self.phone.model, self.id))
+      LOG(INFO, '%s: No average sale found (id %s).' % (self.name, self.id))
       return False
 
     for entry in self.FeedEntries():
       if (entry[self.latest_key] > self.latest):
-        LOG(INFO, '%s updated on %s for %s' % (
+        LOG(INFO, '%s: %s updated on %s for %s' % (
+            self.name,
             entry['title'],
             entry['updated'],
             entry[ebay_constants.kRSSKeyBuyItNowPrice]))
 
     self.latest = self.old_latest
-    LOG(INFO, 'Setting self.latest to %s' %
-        time.strftime('%a, %d %b %Y %H:%M:%S', self.latest))
 
     return True
 
@@ -120,23 +122,26 @@ class PhoneEndedScraper(PhoneScraper):
     PhoneScraper.__init__(self, cursor, url_info, phone,
                           repeat_every=repeat_every)
 
-    self.latest = int(time.time()) * 1000 # eBay does milliseconds since epoch.
+    self.latest = int(time.time())
     self.latest_key = ebay_constants.kRSSKeyEndTime
 
     # Augment url_info['get_params'] and initialize request.
     self.url_info['get_params'][ebay_constants.kGETKeyCompleted] = '1'
     #self.url_info['get_params'][ebay_constants.kGETKeySold] = '1'
-    self.request = util.GenerateRequest(self.url_info)
+    self.request = util.GenerateRequest(self.url_info, self.phone.model)
 
   def Scrape(self):
-    LOG(INFO, 'PhoneEndedScraper - scraping %s' % self.request.get_full_url())
+    LOG(INFO, '%s: scraping %s' % (self.name, self.request.get_full_url()))
 
     for entry in self.FeedEntries():
-      if (int(entry[self.latest_key]) > self.latest and
-          entry[ebay_constants.kRSSKeyBidCount] > 0):
-        LOG(INFO, '%s %s sold for $%s on %s (%s bids)' % (
+      # eBay does milliseconds since epoch, so shave off the last 3 chars.
+      if (int(entry[self.latest_key][:-3]) > self.latest and
+          int(entry[ebay_constants.kRSSKeyBidCount]) > 0):
+        LOG(INFO, '%s: %s %s (%s) sold for $%s on %s (%s bids)' % (
+            self.name,
             self.phone.brand,
             self.phone.model,
+            self.phone.cond,
             float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00,
             util.EbayTimeToString(entry[ebay_constants.kRSSKeyEndTime]),
             entry[ebay_constants.kRSSKeyBidCount]))
