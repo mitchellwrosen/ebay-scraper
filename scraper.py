@@ -22,12 +22,6 @@ class Scraper(object):
     self.repeat_every = repeat_every
     self.running = False
 
-  def FeedEntries(self):
-    feed = feedparser.parse(urllib2.urlopen(self.request))
-    self.old_latest = feed['entries'][0][self.latest_key]
-    for entry in feed['entries']:
-      yield entry
-
   def Run(self):
     if not self.name:
       self.name = threading.current_thread().name
@@ -78,7 +72,6 @@ class PhoneBINScraper(PhoneScraper):
                           repeat_every=repeat_every)
 
     self.latest = time.gmtime()
-    self.latest_key = 'updated_parsed'
 
     self.average_sale = -1
 
@@ -105,15 +98,17 @@ class PhoneBINScraper(PhoneScraper):
       LOG(INFO, '%s: No average sale found (id %s).' % (self.name, self.id))
       return False
 
-    for entry in self.FeedEntries():
-      if (entry[self.latest_key] > self.latest):
+    feed = feedparser.parse(urllib2.urlopen(self.request))
+    for entry in feed['entries']:
+      if (entry['updated_parsed'] > self.latest):
         LOG(INFO, '%s: %s updated on %s for %s' % (
             self.name,
             entry['title'],
             entry['updated'],
             entry[ebay_constants.kRSSKeyBuyItNowPrice]))
 
-    self.latest = self.old_latest
+    self.latest = feed['entries'][0]['updated_parsed']
+
 
     return True
 
@@ -123,7 +118,6 @@ class PhoneEndedScraper(PhoneScraper):
                           repeat_every=repeat_every)
 
     self.latest = int(time.time())
-    self.latest_key = ebay_constants.kRSSKeyEndTime
 
     # Augment url_info['get_params'] and initialize request.
     self.url_info['get_params'][ebay_constants.kGETKeyCompleted] = '1'
@@ -133,9 +127,10 @@ class PhoneEndedScraper(PhoneScraper):
   def Scrape(self):
     LOG(INFO, '%s: scraping %s' % (self.name, self.request.get_full_url()))
 
-    for entry in self.FeedEntries():
+    feed = feedparser.parse(urllib2.urlopen(self.request))
+    for entry in feed['entries']:
       # eBay does milliseconds since epoch, so shave off the last 3 chars.
-      if (int(entry[self.latest_key][:-3]) > self.latest and
+      if (int(entry[ebay_constants.kRSSKeyEndTime][:-3]) > self.latest and
           int(entry[ebay_constants.kRSSKeyBidCount]) > 0):
         LOG(INFO, '%s: %s %s (%s) sold for $%s on %s (%s bids)' % (
             self.name,
@@ -150,6 +145,6 @@ class PhoneEndedScraper(PhoneScraper):
             self.id,
             float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00)
 
-    self.latest = int(self.old_latest)
+    self.latest = int(feed['entries'][0][ebay_constants.kRSSKeyEndTime])
 
     return True
