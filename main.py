@@ -21,28 +21,35 @@ if __name__ == '__main__':
                           template['colors'])
 
 
-  ended_scrapers = []
-  bin_scrapers = []
+  scrapers = [
+    {
+      'type': 'ended',
+      'class': scraper.PhoneEndedScraper,
+      'list': [],
+    },
+    #{
+    #  'type': 'ending',
+    #  'class': scraper.PhoneEndingScraper,
+    #  'list': [],
+    #},
+    {
+      'type': 'bin',
+      'class': scraper.PhoneBINScraper,
+      'list': [],
+    }
+  ]
   threads = []
+
   for phone in config.kPhones:
-    ended_scrapers.append(
-        scraper.PhoneEndedScraper(db_handle,
-                                  copy.deepcopy(config.kUrlInfo),
-                                  phone,
-                                  repeat_every=30))
+    for scraper in scrapers:
+      new_scraper = scraper['class'](db_handle,
+                                     copy.deepcopy(config.kUrlInfo),
+                                     phone)
 
-    bin_scrapers.append(
-        scraper.PhoneBINScraper(db_handle,
-                                copy.deepcopy(config.kUrlInfo),
-                                phone))
-
-  for scraper in ended_scrapers:
-    threads.append(threading.Thread(target=scraper.Run,
-                                    name='%s-ended' % phone.ToString()))
-
-  for scraper in bin_scrapers:
-    threads.append(threading.Thread(target=scraper.Run,
-                                    name='%s-BIN' % phone.ToString()))
+      scraper['list'].append(new_scraper)
+      threads.append(threading.Thread(target=new_scraper.Run,
+                                      name='%s-%s' % (phone.ToString(),
+                                                      scraper['type'])))
 
   i = 1
   for thread in threads:

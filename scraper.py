@@ -66,6 +66,60 @@ class PhoneScraper(Scraper):
   def Scrape(self):
     return
 
+class PhoneEndedScraper(PhoneScraper):
+  def __init__(self, cursor, url_info, phone, repeat_every=3600):
+    PhoneScraper.__init__(self, cursor, url_info, phone,
+                          repeat_every=repeat_every)
+
+    self.latest = int(time.time())
+
+    # Augment url_info['get_params'] and initialize request.
+    self.url_info['get_params'][ebay_constants.kGETKeyCompleted] = '1'
+    #self.url_info['get_params'][ebay_constants.kGETKeySold] = '1'
+    self.request = util.GenerateRequest(self.url_info, self.phone.model)
+
+  def Scrape(self):
+    LOG(INFO, '%s: scraping %s' % (self.name, self.request.get_full_url()))
+
+    feed = feedparser.parse(urllib2.urlopen(self.request))
+    for entry in feed['entries']:
+      # eBay does milliseconds since epoch, so shave off the last 3 chars.
+      if (int(entry[ebay_constants.kRSSKeyEndTime][:-3]) > self.latest and
+          int(entry[ebay_constants.kRSSKeyBidCount]) > 0):
+        LOG(INFO, '%s: %s %s (%s) sold for $%s on %s (%s bids)' % (
+            self.name,
+            self.phone.brand,
+            self.phone.model,
+            self.phone.cond,
+            float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00,
+            util.EbayTimeToString(entry[ebay_constants.kRSSKeyEndTime]),
+            entry[ebay_constants.kRSSKeyBidCount]))
+
+        self.db_handle.InsertSale(
+            self.id,
+            float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00)
+
+    self.latest = int(feed['entries'][0][ebay_constants.kRSSKeyEndTime])
+
+    return True
+
+class PhoneEndingScraper(PhoneScraper):
+  def __init__(self, cursor, url_info, phone, repeat_every=300):
+    PhoneScraper.__init__(self, cursor, url_info, phone,
+                          repeat_every=repeat_every)
+
+    #self.latest =
+
+    # Augment url_info['get_params'] and initialize request.
+
+  def Scrape(self):
+    LOG(INFO, '%s: scraping %s' % (self.name, self.request.get_full_url()))
+
+    feed = feedparser.parse(urllib2.urlopen(self.request))
+    for entry in feed['entries']:
+      pass
+
+
 class PhoneBINScraper(PhoneScraper):
   def __init__(self, db_handle, url_info, phone, repeat_every=30):
     PhoneScraper.__init__(self, db_handle, url_info, phone,
@@ -109,42 +163,5 @@ class PhoneBINScraper(PhoneScraper):
 
     self.latest = feed['entries'][0]['updated_parsed']
 
-
-    return True
-
-class PhoneEndedScraper(PhoneScraper):
-  def __init__(self, cursor, url_info, phone, repeat_every=300):
-    PhoneScraper.__init__(self, cursor, url_info, phone,
-                          repeat_every=repeat_every)
-
-    self.latest = int(time.time())
-
-    # Augment url_info['get_params'] and initialize request.
-    self.url_info['get_params'][ebay_constants.kGETKeyCompleted] = '1'
-    #self.url_info['get_params'][ebay_constants.kGETKeySold] = '1'
-    self.request = util.GenerateRequest(self.url_info, self.phone.model)
-
-  def Scrape(self):
-    LOG(INFO, '%s: scraping %s' % (self.name, self.request.get_full_url()))
-
-    feed = feedparser.parse(urllib2.urlopen(self.request))
-    for entry in feed['entries']:
-      # eBay does milliseconds since epoch, so shave off the last 3 chars.
-      if (int(entry[ebay_constants.kRSSKeyEndTime][:-3]) > self.latest and
-          int(entry[ebay_constants.kRSSKeyBidCount]) > 0):
-        LOG(INFO, '%s: %s %s (%s) sold for $%s on %s (%s bids)' % (
-            self.name,
-            self.phone.brand,
-            self.phone.model,
-            self.phone.cond,
-            float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00,
-            util.EbayTimeToString(entry[ebay_constants.kRSSKeyEndTime]),
-            entry[ebay_constants.kRSSKeyBidCount]))
-
-        self.db_handle.InsertSale(
-            self.id,
-            float(entry[ebay_constants.kRSSKeyCurrentPrice]) / 100.00)
-
-    self.latest = int(feed['entries'][0][ebay_constants.kRSSKeyEndTime])
 
     return True
