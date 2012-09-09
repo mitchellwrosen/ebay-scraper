@@ -24,6 +24,7 @@ class Scraper(object):
     self.repeat_every = repeat_every
     self.running = False
 
+  @util.safe
   def Run(self):
     if not self.name:
       self.name = threading.current_thread().name
@@ -36,7 +37,7 @@ class Scraper(object):
         break
       util.Sleep(self.repeat_every)
 
-  @safe
+  @util.safe
   @abc.abstractmethod
   def Scrape(self):
     return
@@ -65,6 +66,7 @@ class PhoneScraper(Scraper):
   '''
   Do work. Retun true to continue doing work, false to stop.
   '''
+  @util.safe
   @abc.abstractmethod
   def Scrape(self):
     return
@@ -81,6 +83,7 @@ class PhoneEndedScraper(PhoneScraper):
     #self.url_info['get_params'][ebay_constants.kGETKeySold] = '1'
     self.request = util.GenerateRequest(self.url_info, self.phone.model)
 
+  @util.safe
   def Scrape(self):
     logging.info('%s: scraping %s' % (self.name, self.request.get_full_url()))
 
@@ -106,6 +109,7 @@ class PhoneEndedScraper(PhoneScraper):
 
     return True
 
+# TODO(mitchell): Finish this whole class.
 class PhoneEndingScraper(PhoneScraper):
   def __init__(self, cursor, url_info, phone, repeat_every=300):
     PhoneScraper.__init__(self, cursor, url_info, phone,
@@ -115,6 +119,7 @@ class PhoneEndingScraper(PhoneScraper):
 
     # Augment url_info['get_params'] and initialize request.
 
+  @util.safe
   def Scrape(self):
     logging.info('%s: scraping %s' % (self.name, self.request.get_full_url()))
 
@@ -122,6 +127,7 @@ class PhoneEndingScraper(PhoneScraper):
     for entry in feed['entries']:
       pass
 
+# TODO(mitchell) subclass DatabaseHandle.DatabaseTableListener
 class PhoneBINScraper(PhoneScraper):
   def __init__(self, db_handle, url_info, phone, repeat_every=30):
     PhoneScraper.__init__(self, db_handle, url_info, phone,
@@ -140,6 +146,7 @@ class PhoneBINScraper(PhoneScraper):
     self.db_handle.RegisterDatabaseTableListener(self, 'averagesale')
 
   # DatabaseHandle.DatabaseTableListener implementation.
+  @util.safe
   def OnInsert(self, table, columns, values):
     if columns[0] == 'id' and values[0] == self.id:
       self.average_sale = self.db_handle.GetAverageSale(self.id)
@@ -148,6 +155,7 @@ class PhoneBINScraper(PhoneScraper):
       if not self.running and self.average_sale != -1:
         self.Run()
 
+  @util.safe
   def Scrape(self):
     logging.info('%s: Scraping %s' % (self.name, self.request.get_full_url()))
     if self.average_sale == -1:

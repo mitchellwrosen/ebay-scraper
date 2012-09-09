@@ -2,12 +2,14 @@ import average_sale_updater
 import config
 import db_handle
 import scraper
+import util
 
 import copy
 import logging
 import threading
 import time
 
+@util.safe
 def main():
   logging.basicConfig(level=config.kLoggingLevel)
 

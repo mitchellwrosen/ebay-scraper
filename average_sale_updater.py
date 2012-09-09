@@ -7,6 +7,7 @@ class AverageSaleUpdater(object):
   def __init__(self, db_handle):
     self.db_handle = db_handle
 
+  @util.safe
   def Run(self, repeat_every=86400):
     while True:
       logging.info('Updating all average sales...')

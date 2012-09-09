@@ -1,3 +1,4 @@
+import config
 import ebay_constants
 
 import logging
@@ -7,16 +8,18 @@ import urllib
 import urllib2
 
 def SendEmail_(msg):
-  msg['From'] = 'ebayscraper@gmail.com'
-  msg['To'] = 'mitchellwrosen@gmail.com'
+  msg['From'] = config.kEmailFrom
+  msg['To'] = config.kEmailTo
 
-  email_server = smtplib.SMTP(smtp.gmail.com:587)
-  email_server.starttls()
-  email_server.login('ebayscraper@gmail.com', 'ebayscraper')
-  email_server.sendmail('ebayscraper@gmail.com', 'mitchellwrosen@gmail.com',
-                        text)
-  email_server.quit()
-  logging.info('Email for %s sent.' % phone.ToString())
+  try:
+    email_server = smtplib.SMTP(config.kEmailServer)
+    email_server.starttls()
+    email_server.login(config.kEmailFrom, config.kEmailFromPassword)
+    email_server.sendmail(config.kEmailFrom, config.kEmailTo, msg)
+    email_server.quit()
+    logging.info('Email for %s sent.' % phone.ToString())
+  except SMTPException, e:
+    logging.error(e)
 
 def SendEmail(msg):
   threading.Thread(target=SendEmail_, args=(msg,))
@@ -46,6 +49,7 @@ def safe(func):
 '''
 Gets the average element in a list.
 '''
+@safe
 def Average(list):
   if not list:
     return -1
@@ -54,6 +58,7 @@ def Average(list):
 '''
 Trims |pct| percent (0-1) from either end of a list, and return the sorted list.
 '''
+@safe
 def Trim(list, pct):
   chop_num = int(len(list) * pct)
   if chop_num == 0:
@@ -64,6 +69,7 @@ def Trim(list, pct):
 Generates a urllib2.Request object from a url_info dictionary. The search term
 (model) is treated separately, because spaces expand to %20 and not %2520.
 '''
+@safe
 def GenerateRequest(url_info, search):
   get_params = urllib.urlencode(url_info['get_params'])
 
@@ -81,6 +87,7 @@ def GenerateRequest(url_info, search):
 '''
 Converts an "eBay time" (milliseconds since epoch) into a human-readable string.
 '''
+@safe
 def EbayTimeToString(ebay_time):
   return time.strftime('%A %b-%d-%Y %H:%M:%S',
                        time.localtime(int(ebay_time) / 1000))
@@ -88,7 +95,6 @@ def EbayTimeToString(ebay_time):
 '''
 Sleep with a random deviation to un-synchronize threads.
 '''
+@safe
 def Sleep(secs):
   time.sleep(random.randrange(secs - 1, secs + 2))
-
-

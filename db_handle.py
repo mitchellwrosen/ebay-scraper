@@ -28,12 +28,14 @@ class DatabaseHandle(object):
   '''
   Register a class to listen to a particular table's changes.
   '''
+  @util.safe
   def RegisterDatabaseTableListener(self, listener, table):
     if table in self.table_listeners:
       self.table_listeners[table].append(listener)
     else:
       self.table_listeners[table] = [listener]
 
+  @util.safe
   def Select(self, columns, table, cond=None):
     self.lock.acquire()
 
@@ -48,6 +50,7 @@ class DatabaseHandle(object):
     self.lock.release()
     return results
 
+  @util.safe
   def Insert(self, table, columns, values):
     self.lock.acquire()
 
@@ -69,6 +72,7 @@ class DatabaseHandle(object):
     self.lock.release()
     return affected
 
+  @util.safe
   def Delete(self, table, cond=None):
     self.lock.acquire()
 
@@ -90,6 +94,7 @@ class PhoneDatabaseHandle(DatabaseHandle):
   '''
   Gets the id of a phone. Inserts a new entry into the database if necessary.
   '''
+  @util.safe
   def GetId(self, phone):
     cond = 'model="%s" AND brand="%s" AND cond="%s" AND carrier="%s"' % (
         phone.model, phone.brand, phone.cond, phone.carrier)
@@ -104,6 +109,7 @@ class PhoneDatabaseHandle(DatabaseHandle):
 
     return id[0][0]
 
+  @util.safe
   def InsertPhone(self, phone):
     columns = ('model', 'brand', 'cond', 'carrier')
     values = ("'%s'" % phone.model, "'%s'" % phone.brand, "'%s'" % phone.cond,
@@ -119,6 +125,7 @@ class PhoneDatabaseHandle(DatabaseHandle):
   '''
   Gets the most recent average sale price of a phone with id |id|.
   '''
+  @util.safe
   def GetAverageSale(self, id):
     average_sale = self.Select(
         ['price'],
@@ -134,6 +141,7 @@ class PhoneDatabaseHandle(DatabaseHandle):
   Inserts a new average sale of phone with id |id|, by averaging the last month
   of sales.
   '''
+  @util.safe
   def InsertAverageSale(self, id):
     # Grab the last month of sales
     sales = self.Select(['price'],
@@ -151,6 +159,7 @@ class PhoneDatabaseHandle(DatabaseHandle):
   '''
   Purges the database of all sales less than 10% of the phone's average sale.
   '''
+  @util.safe
   def TrimSales(self, id, pct=.10):
     average_sale = self.GetAverageSale(id)
     if average_sale == -1:
@@ -161,11 +170,13 @@ class PhoneDatabaseHandle(DatabaseHandle):
   '''
   Inserts a new sale into the database.
   '''
+  @util.safe
   def InsertSale(self, id, price):
     self.Insert('sale',
                 ('id', 'price', 'date'),
                 (id, price, 'CURDATE()'))
 
+  @util.safe
   def GetAllIds(self):
     all_ids = self.Select(['id'], 'phone')
     return [id for (id,) in all_ids]

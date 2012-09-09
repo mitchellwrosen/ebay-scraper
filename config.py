@@ -1,5 +1,6 @@
 import ebay_constants
 import phone
+import util
 
 import logging
 
@@ -26,6 +27,8 @@ kPhoneTemplates = [
     'colors': ['White', 'Black'],
   }
 ]
+
+@util.safe
 def PopulatePhones(model, brand, conditions, carriers, storage_capacities,
                    colors):
   for color in colors:
@@ -56,3 +59,9 @@ kUrlInfo = {
                    '(KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1'),
   },
 }
+
+# Email-related constants.
+kEmailFrom = 'ebayscraper@gmail.com'
+kEmailFromPassword = 'ebayscraper'
+kEmailTo = 'mitchellwrosen@gmail.com'
+kEmailServer = 'smtp.gmail.com:587'
