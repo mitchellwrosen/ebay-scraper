@@ -2,13 +2,15 @@ import average_sale_updater
 import config
 import db_handle
 import scraper
-from logging import *
 
 import copy
+import logging
 import threading
 import time
 
-if __name__ == '__main__':
+def main():
+  logging.basicConfig(level=config.kLoggingLevel)
+
   db_handle = db_handle.PhoneDatabaseHandle(config.kDatabaseInfo)
 
   # Initialize phones.
@@ -40,6 +42,9 @@ if __name__ == '__main__':
   ]
   threads = []
 
+  # Spawn each type of scraper for each type of phone (1 thread each), 10
+  # seconds apart so as to avoid too many open sockets when requesting URLs.
+  # (Hackish solution, I know).
   for phone in config.kPhones:
     for scraper in scrapers:
       new_scraper = scraper['class'](db_handle,
@@ -47,15 +52,14 @@ if __name__ == '__main__':
                                      phone)
 
       scraper['list'].append(new_scraper)
-      threads.append(threading.Thread(target=new_scraper.Run,
-                                      name='%s-%s' % (phone.ToString(),
-                                                      scraper['type'])))
+      threads.append(
+          threading.Thread(target=new_scraper.Run,
+                           name='%s-%s' % (phone.ToString().replace(' ', '_'),
+                                           scraper['type'])))
 
-  i = 1
-  for thread in threads:
-    thread.start()
-    LOG(INFO, '[%s/%s] threads launched.' % (i, len(threads)))
-    i += 1
+  for index in range(len(threads)):
+    threads[index].start()
+    logging.info('[%s/%s] threads launched.' % (index, len(threads)))
     time.sleep(10)
 
   # Spawn a thread to update averagesale periodically.
@@ -63,3 +67,7 @@ if __name__ == '__main__':
   threading.Thread(target=average_sale_updater.Run,
                    kwargs={'repeat_every': 60},
                    name='Average_Sale_Updater').start()
+
+if __name__ == '__main__':
+  main()
+

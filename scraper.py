@@ -1,11 +1,13 @@
 import config
 import db_handle
 import ebay_constants
+import email
 import util
-from logging import *
 
 import abc
 import feedparser
+import logging
+import smtplib
 import threading
 import time
 import urllib2
@@ -25,15 +27,16 @@ class Scraper(object):
   def Run(self):
     if not self.name:
       self.name = threading.current_thread().name
-    LOG(INFO, '%s: Running.' % self.name)
+    logging.info('%s: Running.' % self.name)
     self.running = True
     while True:
       if not self.Scrape():
-        LOG(INFO, '%s: Stopping.' % self.name)
+        logging.info('%s: Stopping.' % self.name)
         self.running = False
         break
       util.Sleep(self.repeat_every)
 
+  @safe
   @abc.abstractmethod
   def Scrape(self):
     return
@@ -79,14 +82,14 @@ class PhoneEndedScraper(PhoneScraper):
     self.request = util.GenerateRequest(self.url_info, self.phone.model)
 
   def Scrape(self):
-    LOG(INFO, '%s: scraping %s' % (self.name, self.request.get_full_url()))
+    logging.info('%s: scraping %s' % (self.name, self.request.get_full_url()))
 
     feed = feedparser.parse(urllib2.urlopen(self.request))
     for entry in feed['entries']:
       # eBay does milliseconds since epoch, so shave off the last 3 chars.
       if (int(entry[ebay_constants.kRSSKeyEndTime][:-3]) > self.latest and
           int(entry[ebay_constants.kRSSKeyBidCount]) > 0):
-        LOG(INFO, '%s: %s %s (%s) sold for $%s on %s (%s bids)' % (
+        logging.info('%s: %s %s (%s) sold for $%s on %s (%s bids)' % (
             self.name,
             self.phone.brand,
             self.phone.model,
@@ -113,12 +116,11 @@ class PhoneEndingScraper(PhoneScraper):
     # Augment url_info['get_params'] and initialize request.
 
   def Scrape(self):
-    LOG(INFO, '%s: scraping %s' % (self.name, self.request.get_full_url()))
+    logging.info('%s: scraping %s' % (self.name, self.request.get_full_url()))
 
     feed = feedparser.parse(urllib2.urlopen(self.request))
     for entry in feed['entries']:
       pass
-
 
 class PhoneBINScraper(PhoneScraper):
   def __init__(self, db_handle, url_info, phone, repeat_every=30):
@@ -141,27 +143,26 @@ class PhoneBINScraper(PhoneScraper):
   def OnInsert(self, table, columns, values):
     if columns[0] == 'id' and values[0] == self.id:
       self.average_sale = self.db_handle.GetAverageSale(self.id)
-      LOG(INFO, '%s: Updating average sale to %s' % (self.name,
-                                                     self.average_sale))
+      logging.info('%s: Updating average sale to %s' % (self.name,
+                                                        self.average_sale))
       if not self.running and self.average_sale != -1:
         self.Run()
 
   def Scrape(self):
-    LOG(INFO, '%s: Scraping %s' % (self.name, self.request.get_full_url()))
+    logging.info('%s: Scraping %s' % (self.name, self.request.get_full_url()))
     if self.average_sale == -1:
-      LOG(INFO, '%s: No average sale found (id %s).' % (self.name, self.id))
+      logging.info('%s: No average sale found (id %s).' % (self.name, self.id))
       return False
 
     feed = feedparser.parse(urllib2.urlopen(self.request))
     for entry in feed['entries']:
       if (entry['updated_parsed'] > self.latest):
-        LOG(INFO, '%s: %s updated on %s for %s' % (
+        logging.info('%s: %s updated on %s for %s' % (
             self.name,
             entry['title'],
             entry['updated'],
             entry[ebay_constants.kRSSKeyBuyItNowPrice]))
 
     self.latest = feed['entries'][0]['updated_parsed']
-
 
     return True

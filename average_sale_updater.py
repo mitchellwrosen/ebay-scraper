@@ -1,6 +1,6 @@
 import db_handle
-from logging import *
 
+import logging
 import util
 
 class AverageSaleUpdater(object):
@@ -9,7 +9,7 @@ class AverageSaleUpdater(object):
 
   def Run(self, repeat_every=86400):
     while True:
-      LOG(INFO, 'Updating all average sales...')
+      logging.info('Updating all average sales...')
       for id in self.db_handle.GetAllIds():
         self.db_handle.TrimSales(id)
         self.db_handle.InsertAverageSale(id)

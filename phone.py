@@ -22,4 +22,4 @@ class Phone(object):
   def ToString(self):
     attrs = [self.model, self.brand, self.cond, self.carrier,
              self.storage_capacity, self.color]
-    return '_'.join([attr for attr in attrs if attr]).replace(' ', '_')
+    return ' '.join([attr for attr in attrs if attr])

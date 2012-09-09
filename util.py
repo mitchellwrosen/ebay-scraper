@@ -1,10 +1,47 @@
 import ebay_constants
-from logging import *
 
+import logging
 import random
 import time
 import urllib
 import urllib2
+
+def SendEmail_(msg):
+  msg['From'] = 'ebayscraper@gmail.com'
+  msg['To'] = 'mitchellwrosen@gmail.com'
+
+  email_server = smtplib.SMTP(smtp.gmail.com:587)
+  email_server.starttls()
+  email_server.login('ebayscraper@gmail.com', 'ebayscraper')
+  email_server.sendmail('ebayscraper@gmail.com', 'mitchellwrosen@gmail.com',
+                        text)
+  email_server.quit()
+  logging.info('Email for %s sent.' % phone.ToString())
+
+def SendEmail(msg):
+  threading.Thread(target=SendEmail_, args=(msg,))
+
+def SendPhoneEmail(phone, link, price, average_price):
+  msg = email.MIMEText('<a href="%s">%s</a>' % (link, link), 'html')
+  msg['Subject'] = '%s ($%s, average $%s)' % (phone.ToString(), price,
+                                              average_price)
+  SendEmail(msg)
+
+'''
+Decorator that surrounds the function in a try/catch block and sends an email
+containing any exceptions. Note that the email function itself needs to be
+void of any possible exceptions =(.
+'''
+def safe(func):
+  def wrapper():
+    try:
+      func()
+    except Exception, e:
+      msg = email.MIMEText(e, 'plain')
+      msg['Subject'] = '%s exception' % func.__name__
+      SendEmail(msg)
+
+  return wrapper
 
 '''
 Gets the average element in a list.
@@ -53,4 +90,5 @@ Sleep with a random deviation to un-synchronize threads.
 '''
 def Sleep(secs):
   time.sleep(random.randrange(secs - 1, secs + 2))
+
 

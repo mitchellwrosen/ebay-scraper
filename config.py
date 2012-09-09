@@ -1,9 +1,9 @@
 import ebay_constants
 import phone
 
-# 0=None; 1=Errors; 2=Errors,Warnings; 3=Errors,Warnings,Info
-kLogging = 3
+import logging
 
+kLogLevel = logging.INFO
 
 # In main.py, populate kPhones with a call to PopulatePhones() for each phone in
 # kPhoneTemplates.
