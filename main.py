@@ -13,7 +13,7 @@ def main():
 
   scraper_classes = [scraper.PhoneEndedScraper, scraper.PhoneBINScraper]
 
-  # Spawn each type of scraper for each type of phone 10 seconds apart so as to
+  # Spawn each type of scraper for each type of phone 5 seconds apart so as to
   # avoid too many open sockets when requesting URLs (hackish solution, I know).
   index = 1
   num_scrapers = len(config.kPhones) * len(scraper_classes)
@@ -25,7 +25,7 @@ def main():
                     phone).start()
       logger.info('[%s/%s] scrapers launched.' % (index, num_scrapers))
       index = index + 1
-      time.sleep(1)
+      time.sleep(5)
 
   # Spawn a thread to update averagesale periodically.
   average_sale_updater.AverageSaleUpdater('AverageSaleUpdater', db_handle,

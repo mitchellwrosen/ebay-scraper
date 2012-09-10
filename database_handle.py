@@ -1,3 +1,4 @@
+import config
 import util
 from config import logger
 
