@@ -11,12 +11,17 @@ class Phone(object):
     self.color = color
 
     self.ebay_cond = {
-      ebay_constants.kConditionKeyNew: ebay_constants.kConditionValueNew,
-      ebay_constants.kConditionKeyNewOther: ebay_constants.kConditionValueNewOther,
-      ebay_constants.kConditionKeyManufacturerRefurbished: ebay_constants.kConditionValueManufacturerRefurbished,
-      ebay_constants.kConditionKeySellerRefurbished: ebay_constants.kConditionValueSellerRefurbished,
+      ebay_constants.kConditionKeyNew:
+          ebay_constants.kConditionValueNew,
+      ebay_constants.kConditionKeyNewOther:
+          ebay_constants.kConditionValueNewOther,
+      ebay_constants.kConditionKeyManufacturerRefurbished:
+          ebay_constants.kConditionValueManufacturerRefurbished,
+      ebay_constants.kConditionKeySellerRefurbished:
+          ebay_constants.kConditionValueSellerRefurbished,
       ebay_constants.kConditionKeyUsed: ebay_constants.kConditionValueUsed,
-      ebay_constants.kConditionKeyForParts: ebay_constants.kConditionValueForParts,
+      ebay_constants.kConditionKeyForParts:
+          ebay_constants.kConditionValueForParts,
     }[self.cond]
 
   def ToString(self):
