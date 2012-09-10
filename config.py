@@ -46,9 +46,15 @@ kDatabaseInfo = {
   'db': 'ebay_scraper_data',
 }
 
-kUrlInfo = {
+kEbayPhoneUrlInfo = {
   'base_url': 'http://www.ebay.com/sch/rss/',
-  'get_params': {},
+  'get_params': {
+    '_dmpt': 'Cell_Phones',
+    '_rss': '1',
+    'rt': 'nc',
+    ebay_constants.kGETKeyCategory:
+        ebay_constants.kGETValueCategoryCellPhonesAndSmartphones,
+  },
   'headers': {
     # Chrome 22 user agent string, cause I'm hella cool like that.
     'User-Agent': ('Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 '

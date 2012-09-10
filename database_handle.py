@@ -46,7 +46,7 @@ class DatabaseHandle(object):
     if cond:
       statement += ' WHERE %s' % cond
 
-    logger.info(statement)
+    logger.debug(statement)
     self.cursor.execute(statement)
     results = self.cursor.fetchall()
 
@@ -61,7 +61,7 @@ class DatabaseHandle(object):
         ', '.join(columns),
         ', '.join([str(value) for value in values]))
 
-    logger.info(statement)
+    logger.debug(statement)
     self.cursor.execute(statement)
     affected = self.cursor.rowcount
 
@@ -81,7 +81,7 @@ class DatabaseHandle(object):
     if cond:
       statement += ' WHERE %s' % cond
 
-    logger.info(statement)
+    logger.debug(statement)
     self.cursor.execute(statement)
     affected = self.cursor.rowcount
 

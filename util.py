@@ -83,3 +83,17 @@ Sleep with a random deviation to un-synchronize threads.
 '''
 def Sleep(secs):
   time.sleep(random.randrange(secs - 1, secs + 2))
+
+'''
+Decorator that surrounds the function in a try/catch block and logs any
+thrown exceptions.
+'''
+def log_exceptions(func):
+  def wrapper(self):
+    try:
+      func(self)
+    except Exception, e:
+      logger.exception(e)
+
+  return wrapper
+
