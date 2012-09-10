@@ -7,7 +7,6 @@ import util
 import abc
 import feedparser
 import logging
-import smtplib
 import threading
 import time
 import urllib2
@@ -15,8 +14,10 @@ import urllib2
 class Scraper(object):
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, db_handle, url_info, repeat_every=60):
+  def __init__(self, db_handle, url_info, tables, repeat_every=60):
     self.db_handle = db_handle
+    DatabaseHandle.DatabaseTableListener.__init__(self, tables)
+
     self.url_info = url_info
     self.latest = None
 
@@ -37,7 +38,6 @@ class Scraper(object):
         break
       util.Sleep(self.repeat_every)
 
-  @util.safe
   @abc.abstractmethod
   def Scrape(self):
     return
@@ -45,8 +45,9 @@ class Scraper(object):
 class PhoneScraper(Scraper):
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, db_handle, url_info, phone, repeat_every=60):
-    Scraper.__init__(self, db_handle, url_info, repeat_every=repeat_every)
+  def __init__(self, db_handle, url_info, phone, tables, repeat_every=60):
+    Scraper.__init__(self, db_handle, url_info, tables,
+                     repeat_every=repeat_every)
 
     self.phone = phone
     self.id = self.db_handle.GetId(self.phone)
@@ -66,14 +67,13 @@ class PhoneScraper(Scraper):
   '''
   Do work. Retun true to continue doing work, false to stop.
   '''
-  @util.safe
   @abc.abstractmethod
   def Scrape(self):
     return
 
 class PhoneEndedScraper(PhoneScraper):
-  def __init__(self, cursor, url_info, phone, repeat_every=3600):
-    PhoneScraper.__init__(self, cursor, url_info, phone,
+  def __init__(self, cursor, url_info, phone, tables, repeat_every=3600):
+    PhoneScraper.__init__(self, cursor, url_info, phone, tables,
                           repeat_every=repeat_every)
 
     self.latest = int(time.time())
@@ -111,8 +111,8 @@ class PhoneEndedScraper(PhoneScraper):
 
 # TODO(mitchell): Finish this whole class.
 class PhoneEndingScraper(PhoneScraper):
-  def __init__(self, cursor, url_info, phone, repeat_every=300):
-    PhoneScraper.__init__(self, cursor, url_info, phone,
+  def __init__(self, cursor, url_info, phone, tables, repeat_every=300):
+    PhoneScraper.__init__(self, cursor, url_info, phone, tables,
                           repeat_every=repeat_every)
 
     #self.latest =
@@ -127,9 +127,8 @@ class PhoneEndingScraper(PhoneScraper):
     for entry in feed['entries']:
       pass
 
-# TODO(mitchell) subclass DatabaseHandle.DatabaseTableListener
 class PhoneBINScraper(PhoneScraper):
-  def __init__(self, db_handle, url_info, phone, repeat_every=30):
+  def __init__(self, db_handle, url_info, phone, tables, repeat_every=30):
     PhoneScraper.__init__(self, db_handle, url_info, phone,
                           repeat_every=repeat_every)
 
@@ -142,8 +141,6 @@ class PhoneBINScraper(PhoneScraper):
     self.url_info['get_params'][ebay_constants.kGETKeySortByTimeNewlyListed] = (
         ebay_constants.kGETValueSortByTimeNewlyListed)
     self.request = util.GenerateRequest(self.url_info, self.phone.model)
-
-    self.db_handle.RegisterDatabaseTableListener(self, 'averagesale')
 
   # DatabaseHandle.DatabaseTableListener implementation.
   @util.safe

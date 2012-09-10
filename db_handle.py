@@ -12,6 +12,10 @@ class DatabaseHandle(object):
   class DatabaseTableListener(object):
     __metaclass__ = abc.ABCMeta
 
+    def __init__(self, tables):
+      for table in tables:
+        self.db_handle.RegisterDatabaseTableListener(self, table)
+
     @abc.abstractmethod
     def OnInsert(self, table, column, values):
       return

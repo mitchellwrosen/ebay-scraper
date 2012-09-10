@@ -1,48 +1,60 @@
 import config
 import ebay_constants
+import phone
 
+import inspect
 import logging
 import random
+import smtplib
+import threading
 import time
 import urllib
 import urllib2
+from email.mime.text import MIMEText
 
 def SendEmail_(msg):
   msg['From'] = config.kEmailFrom
-  msg['To'] = config.kEmailTo
+  msg['To'] = ', '.join(config.kEmailTo)
 
   try:
     email_server = smtplib.SMTP(config.kEmailServer)
     email_server.starttls()
     email_server.login(config.kEmailFrom, config.kEmailFromPassword)
-    email_server.sendmail(config.kEmailFrom, config.kEmailTo, msg)
+    email_server.sendmail(config.kEmailFrom, config.kEmailTo, msg.as_string())
     email_server.quit()
-    logging.info('Email for %s sent.' % phone.ToString())
-  except SMTPException, e:
+  # SMTPConnectError, SMTPHeloError, SMTPException, SMTPAuthenticationError, ...
+  except Exception, e:
     logging.error(e)
 
 def SendEmail(msg):
-  threading.Thread(target=SendEmail_, args=(msg,))
+  threading.Thread(target=SendEmail_, args=(msg,)).start()
 
 def SendPhoneEmail(phone, link, price, average_price):
-  msg = email.MIMEText('<a href="%s">%s</a>' % (link, link), 'html')
+  msg = MIMEText('<a href="%(link)s">%(link)s</a>' % link, 'html')
   msg['Subject'] = '%s ($%s, average $%s)' % (phone.ToString(), price,
                                               average_price)
   SendEmail(msg)
+  logging.info('Email for %s sent.' % phone.ToString())
 
 '''
-Decorator that surrounds the function in a try/catch block and sends an email
-containing any exceptions. Note that the email function itself needs to be
-void of any possible exceptions =(.
+Decorator that surrounds the function in a try/catch block and logs any
+thrown exceptions.
 '''
 def safe(func):
   def wrapper():
     try:
       func()
     except Exception, e:
-      msg = email.MIMEText(e, 'plain')
-      msg['Subject'] = '%s exception' % func.__name__
-      SendEmail(msg)
+      # Grab the frame outside wrapper(). Not really the correct frame, since
+      # the correct frame would be func()'s frame.
+      frame_info = inspect.stack()[1]
+      arg_info = inspect.getargvalues(frame_info[0])
+      s = '%s:%s %s(' % (frame_info[1], frame_info[2],
+                         frame_info[3])
+      for arg in arg_info.args:
+        s += '%s=%s, ' % (arg, arg_info.locals[arg])
+      s += '):'
+      logging.error('%s %s' % (s, e))
 
   return wrapper
 

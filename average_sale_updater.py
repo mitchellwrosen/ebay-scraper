@@ -1,7 +1,7 @@
 import db_handle
+import util
 
 import logging
-import util
 
 class AverageSaleUpdater(object):
   def __init__(self, db_handle):

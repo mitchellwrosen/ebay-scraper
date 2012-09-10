@@ -1,15 +1,14 @@
 import ebay_constants
 import phone
-import util
 
 import logging
+import logging.config
 
-kLogLevel = logging.INFO
+logging.config.fileConfig('logging.conf')
+logger = logging.getLogger('root')
 
-# In main.py, populate kPhones with a call to PopulatePhones() for each phone in
-# kPhoneTemplates.
-kPhones = []
-kPhoneTemplates = [
+kPhones = [] # Will be filled below.
+kPhoneTemplates_ = [
   {
     'model': 'Galaxy Nexus',
     'brand': 'Samsung',
@@ -27,16 +26,13 @@ kPhoneTemplates = [
     'colors': ['White', 'Black'],
   }
 ]
-
-@util.safe
-def PopulatePhones(model, brand, conditions, carriers, storage_capacities,
-                   colors):
-  for color in colors:
-    for storage_capacity in storage_capacities:
-      for carrier in carriers:
-        for cond in conditions:
-          kPhones.append(phone.Phone(model, brand, cond, carrier,
-                                     storage_capacity=storage_capacity,
+for template in kPhoneTemplates_:
+  for color in template['colors']:
+    for storage_capacity in template['storage_capacities']:
+      for carrier in template['carriers']:
+        for cond in template['conditions']:
+          kPhones.append(phone.Phone(template['model'], template['brand'], cond,
+                                     carrier, storage_capacity=storage_capacity,
                                      color=color))
 
 # The percentage of sales to trim from either end, before calculating average
@@ -60,8 +56,8 @@ kUrlInfo = {
   },
 }
 
-# Email-related constants.
+# Email-related constants. Be sure to keep in sync with logging.conf.
 kEmailFrom = 'ebayscraper@gmail.com'
 kEmailFromPassword = 'ebayscraper'
-kEmailTo = 'mitchellwrosen@gmail.com'
+kEmailTo = ['mitchellwrosen@gmail.com']
 kEmailServer = 'smtp.gmail.com:587'

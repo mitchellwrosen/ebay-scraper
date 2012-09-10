@@ -11,53 +11,47 @@ import time
 
 @util.safe
 def main():
-  logging.basicConfig(level=config.kLoggingLevel)
-
-  db_handle = db_handle.PhoneDatabaseHandle(config.kDatabaseInfo)
-
-  # Initialize phones.
-  for template in config.kPhoneTemplates:
-    config.PopulatePhones(template['model'],
-                          template['brand'],
-                          template['conditions'],
-                          template['carriers'],
-                          template['storage_capacities'],
-                          template['colors'])
-
+  handle = db_handle.PhoneDatabaseHandle(config.kDatabaseInfo)
 
   scrapers = [
     {
       'type': 'ended',
       'class': scraper.PhoneEndedScraper,
+      'args': {
+        'db_handle': handle,
+        'url_info': copy.deepcopy(config.kUrlInfo),
+        'tables': [],
+      },
       'list': [],
     },
-    #{
-    #  'type': 'ending',
-    #  'class': scraper.PhoneEndingScraper,
-    #  'list': [],
-    #},
     {
       'type': 'bin',
       'class': scraper.PhoneBINScraper,
-      'list': [],
-    }
+      'args': {
+        'db_handle': handle,
+        'url_info': copy.deepcopy(config.kUrlInfo),
+        'tables': [],
+      },
+      'list': ['averagesale'],
+    },
   ]
   threads = []
 
   # Spawn each type of scraper for each type of phone (1 thread each), 10
-  # seconds apart so as to avoid too many open sockets when requesting URLs.
-  # (Hackish solution, I know).
+  # seconds apart so as to avoid too many open sockets when requesting URLs
+  # (hackish solution, I know).
   for phone in config.kPhones:
-    for scraper in scrapers:
-      new_scraper = scraper['class'](db_handle,
-                                     copy.deepcopy(config.kUrlInfo),
-                                     phone)
-
-      scraper['list'].append(new_scraper)
+    for scraper_template in scrapers:
+      new_scraper = scraper_template['class'](
+          scraper_template['db_handle'],
+          scraper_template['url_info'],
+          phone,
+          scraper_template['tables'])
+      scraper_template['list'].append(new_scraper)
       threads.append(
           threading.Thread(target=new_scraper.Run,
                            name='%s-%s' % (phone.ToString().replace(' ', '_'),
-                                           scraper['type'])))
+                                           scraper_template['type'])))
 
   for index in range(len(threads)):
     threads[index].start()
@@ -65,11 +59,10 @@ def main():
     time.sleep(10)
 
   # Spawn a thread to update averagesale periodically.
-  average_sale_updater = average_sale_updater.AverageSaleUpdater(db_handle)
+  average_sale_updater = average_sale_updater.AverageSaleUpdater(handle)
   threading.Thread(target=average_sale_updater.Run,
                    kwargs={'repeat_every': 60},
                    name='Average_Sale_Updater').start()
 
 if __name__ == '__main__':
   main()
-
