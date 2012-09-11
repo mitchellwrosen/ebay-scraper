@@ -45,11 +45,7 @@ class Scraper(threading.Thread,
   def Scrape(self):
     return
 
-  # TODO(mitchell): add abstract method here, see if derived derived breaks.
-
 class PhoneScraper(Scraper):
-  __metaclass__ = abc.ABCMeta
-
   def __init__(self, phone, *args):
     Scraper.__init__(self, *args)
 
@@ -62,6 +58,10 @@ class PhoneScraper(Scraper):
     self.url_info['get_params']['Carrier'] = phone.carrier
     self.url_info['get_params'][ebay_constants.kGETKeyItemCondition] = (
         phone.ebay_cond)
+
+  @abc.abstractmethod
+  def Scrape(self):
+    return
 
 class PhoneEndedScraper(PhoneScraper):
   def __init__(self, *args):
