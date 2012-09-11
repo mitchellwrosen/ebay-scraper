@@ -16,11 +16,8 @@ class Scraper(threading.Thread,
               database_handle.DatabaseHandle.DatabaseTableListener):
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, name, db_handle, url_info, scrape_every=None,
-               listen_to_tables=None):
-    if scrape_every is None or listen_to_tables is None:
-      raise NotImplementedError, "scrape_every or listen_to_tables is None"
-
+  def __init__(self, name, db_handle, url_info, scrape_every,
+               listen_to_tables):
     threading.Thread.__init__(self, name=name)
     self.scrape_every = scrape_every
 
@@ -53,10 +50,8 @@ class Scraper(threading.Thread,
 class PhoneScraper(Scraper):
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, name, db_handle, url_info, phone, scrape_every=None,
-               listen_to_tables=None):
-    Scraper.__init__(self, name, db_handle, url_info, scrape_every=scrape_every,
-                     listen_to_tables=listen_to_tables)
+  def __init__(self, phone, *args):
+    Scraper.__init__(self, *args)
 
     self.phone = phone
     self.id = self.db_handle.GetId(self.phone)
@@ -69,11 +64,8 @@ class PhoneScraper(Scraper):
         phone.ebay_cond)
 
 class PhoneEndedScraper(PhoneScraper):
-  def __init__(self, name, db_handle, url_info, phone, scrape_every=3600,
-               listen_to_tables=[]):
-    PhoneScraper.__init__(self, name, db_handle, url_info, phone,
-                          scrape_every=scrape_every,
-                          listen_to_tables=listen_to_tables)
+  def __init__(self, *args):
+    PhoneScraper.__init__(self, *(args + (3600, [])))
     self.name = self.name + '-ended'
 
     self.latest = int(time.time())
@@ -114,11 +106,8 @@ class PhoneEndedScraper(PhoneScraper):
 
 # TODO(mitchell): Finish this whole class.
 class PhoneEndingScraper(PhoneScraper):
-  def __init__(self, name, db_handle, url_info, phone, scrape_every=300,
-               listen_to_tables=[]):
-    PhoneScraper.__init__(self, name, db_handle, url_info, phone,
-                          scrape_every=scrape_every,
-                          listen_to_tables=listen_to_tables)
+  def __init__(self, *args):
+    PhoneScraper.__init__(self, *(args + (300, [])))
     self.name = self.name + '-ending'
 
     #self.latest =
@@ -138,11 +127,8 @@ class PhoneEndingScraper(PhoneScraper):
       pass
 
 class PhoneBINScraper(PhoneScraper):
-  def __init__(self, name, db_handle, url_info, phone, scrape_every=30,
-               listen_to_tables=['averagesale']):
-    PhoneScraper.__init__(self, name, db_handle, url_info, phone,
-                          scrape_every=scrape_every,
-                          listen_to_tables=listen_to_tables)
+  def __init__(self, *args):
+    PhoneScraper.__init__(self, *(args + (30, ['averagesale'])))
     self.name = self.name + '-bin'
 
     self.latest = time.gmtime()

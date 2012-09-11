@@ -8,6 +8,7 @@ from config import logger
 import threading
 import time
 
+@util.log_exceptions
 def main():
   db_handle = database_handle.PhoneDatabaseHandle(config.kDatabaseInfo)
 
@@ -19,10 +20,10 @@ def main():
   num_scrapers = len(config.kPhones) * len(scraper_classes)
   for phone in config.kPhones:
     for scraper_class in scraper_classes:
-      scraper_class(phone.ToString().replace(' ', '_'),
+      scraper_class(phone,
+                    phone.ToString().replace(' ', '_'),
                     db_handle,
-                    config.kEbayPhoneUrlInfo,
-                    phone).start()
+                    config.kEbayPhoneUrlInfo).start()
       logger.info('[%s/%s] scrapers launched.' % (index, num_scrapers))
       index = index + 1
       time.sleep(5)

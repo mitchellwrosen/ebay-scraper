@@ -89,9 +89,9 @@ Decorator that surrounds the function in a try/catch block and logs any
 thrown exceptions.
 '''
 def log_exceptions(func):
-  def wrapper(self):
+  def wrapper(*args, **kwargs):
     try:
-      func(self)
+      func(*args, **kwargs)
     except Exception, e:
       logger.exception(e)
 
