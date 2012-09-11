@@ -1,32 +1,27 @@
 import config
 import database_handle
 import ebay_constants
-import email
 import util
 from config import logger
 
 import abc
 import copy
+import email
 import feedparser
 import threading
 import time
 import urllib2
 
-class Scraper(threading.Thread,
-              database_handle.DatabaseHandle.DatabaseTableListener):
+class Scraper(threading.Thread):
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, name, db_handle, url_info, scrape_every,
-               listen_to_tables):
-    threading.Thread.__init__(self, name=name)
-    self.scrape_every = scrape_every
+  def __init__(self, **kwargs):
+    threading.Thread.__init__(self, name=kwargs['name'])
+    self.scrape_every = kwargs['scrape_every']
 
-    self.db_handle = db_handle
-    database_handle.DatabaseHandle.DatabaseTableListener.__init__(
-        self,
-        listen_to_tables)
+    self.db_handle = kwargs['db_handle']
 
-    self.url_info = copy.deepcopy(url_info)
+    self.url_info = copy.deepcopy(kwargs['url_info'])
     self.latest = None
 
   @util.log_exceptions
@@ -36,6 +31,7 @@ class Scraper(threading.Thread,
       if not self.Scrape():
         logger.info('Stopping.')
         break
+
       util.Sleep(self.scrape_every)
 
   '''
@@ -46,26 +42,27 @@ class Scraper(threading.Thread,
     return
 
 class PhoneScraper(Scraper):
-  def __init__(self, phone, *args):
-    Scraper.__init__(self, *args)
+  def __init__(self, **kwargs):
+    Scraper.__init__(self, **kwargs)
 
-    self.phone = phone
+    self.phone = kwargs['phone']
     self.id = self.db_handle.GetId(self.phone)
 
     # Augment url_info['get_params']
-    self.url_info['get_params']['Brand'] = phone.brand
-    self.url_info['get_params']['Storage Capacity'] = phone.storage_capacity
-    self.url_info['get_params']['Carrier'] = phone.carrier
+    self.url_info['get_params']['Brand'] = self.phone.brand
+    self.url_info['get_params']['Storage Capacity'] = (
+        self.phone.storage_capacity)
+    self.url_info['get_params']['Carrier'] = self.phone.carrier
     self.url_info['get_params'][ebay_constants.kGETKeyItemCondition] = (
-        phone.ebay_cond)
+        self.phone.ebay_cond)
 
   @abc.abstractmethod
   def Scrape(self):
     return
 
 class PhoneEndedScraper(PhoneScraper):
-  def __init__(self, *args):
-    PhoneScraper.__init__(self, *(args + (3600, [])))
+  def __init__(self, **kwargs):
+    PhoneScraper.__init__(self, scrape_every=3600, **kwargs)
     self.name = self.name + '-ended'
 
     self.latest = int(time.time())
@@ -74,10 +71,6 @@ class PhoneEndedScraper(PhoneScraper):
     self.url_info['get_params'][ebay_constants.kGETKeyCompleted] = '1'
     #self.url_info['get_params'][ebay_constants.kGETKeySold] = '1'
     self.request = util.GenerateRequest(self.url_info, self.phone.model)
-
-  # DatabaseHandle.DatabaseTableListener implementation.
-  def OnInsert(self, table, columns, values):
-    pass
 
   # Scraper implementation.
   def Scrape(self):
@@ -105,9 +98,14 @@ class PhoneEndedScraper(PhoneScraper):
     return True
 
 # TODO(mitchell): Finish this whole class.
-class PhoneEndingScraper(PhoneScraper):
-  def __init__(self, *args):
-    PhoneScraper.__init__(self, *(args + (300, [])))
+class PhoneEndingScraper(PhoneScraper,
+                         database_handle.DatabaseHandle.DatabaseTableListener):
+  def __init__(self, **kwargs):
+    PhoneScraper.__init__(self, scrape_every=300, **kwargs)
+    database_handle.DatabaseHandle.DatabaseTableListener.__init__(
+        self,
+        ['averagesale'])
+
     self.name = self.name + '-ending'
 
     #self.latest =
@@ -126,9 +124,14 @@ class PhoneEndingScraper(PhoneScraper):
     for entry in feed['entries']:
       pass
 
-class PhoneBINScraper(PhoneScraper):
-  def __init__(self, *args):
-    PhoneScraper.__init__(self, *(args + (30, ['averagesale'])))
+class PhoneBINScraper(PhoneScraper,
+                      database_handle.DatabaseHandle.DatabaseTableListener):
+  def __init__(self, **kwargs):
+    PhoneScraper.__init__(self, scrape_every=30, **kwargs)
+    database_handle.DatabaseHandle.DatabaseTableListener.__init__(
+        self,
+        ['averagesale'])
+
     self.name = self.name + '-bin'
 
     self.latest = time.gmtime()
@@ -143,6 +146,7 @@ class PhoneBINScraper(PhoneScraper):
 
   # DatabaseHandle.DatabaseTableListener implementation.
   def OnInsert(self, table, columns, values):
+    logger.info('OnInsert')
     if columns[0] == 'id' and values[0] == self.id:
       self.average_sale = self.db_handle.GetAverageSale(self.id)
       logger.info('Updating average sale to %s' % self.average_sale)

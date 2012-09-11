@@ -1,7 +1,9 @@
 import database_handle
-import threading
 import util
 from config import logger
+
+import threading
+import time
 
 class AverageSaleUpdater(threading.Thread):
   def __init__(self, name, db_handle, update_every=86400):
@@ -18,7 +20,8 @@ class AverageSaleUpdater(threading.Thread):
       util.Sleep(self.update_every)
 
   def Update(self):
-      logger.info('Updating all average sales.')
       for id in self.db_handle.GetAllIds():
+        logger.info('Updating average sale for phone with id %d.' % id)
         self.db_handle.TrimSales(id)
         self.db_handle.InsertAverageSale(id)
+        time.sleep(1)
