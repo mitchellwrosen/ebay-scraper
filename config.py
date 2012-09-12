@@ -8,6 +8,18 @@ logging.config.fileConfig('logging.conf')
 logger = logging.getLogger('root')
 
 kPhones = [] # Will be filled below.
+
+kPhoneTemplates_ = [
+  {
+    'model': 'Galaxy Nexus',
+    'brand': 'Samsung',
+    'conditions': [ebay_constants.kConditionKeyNew],
+    'carriers': ['Verizon'],
+    'storage_capacities': ['32 GB'],
+    'colors': [None],
+  }
+]
+"""
 kPhoneTemplates_ = [
   {
     'model': 'Galaxy Nexus',
@@ -26,6 +38,7 @@ kPhoneTemplates_ = [
     'colors': ['White', 'Black'],
   }
 ]
+"""
 for template in kPhoneTemplates_:
   for color in template['colors']:
     for storage_capacity in template['storage_capacities']:

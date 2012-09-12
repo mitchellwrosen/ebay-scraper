@@ -146,7 +146,7 @@ class PhoneBINScraper(PhoneScraper,
 
   # DatabaseHandle.DatabaseTableListener implementation.
   def OnInsert(self, table, columns, values):
-    logger.info('OnInsert')
+    logger.info('OnInsert: columns=%s, values=%s' % (columns, values))
     if columns[0] == 'id' and values[0] == self.id:
       self.average_sale = self.db_handle.GetAverageSale(self.id)
       logger.info('Updating average sale to %s' % self.average_sale)

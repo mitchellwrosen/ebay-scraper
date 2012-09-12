@@ -35,6 +35,7 @@ class DatabaseHandle(object):
   Register a class to listen to a particular table's changes.
   '''
   def RegisterDatabaseTableListener(self, listener, table):
+    logger.info('RegisterDatabaseTableListener')
     if table in self.table_listeners:
       self.table_listeners[table].append(listener)
     else:
@@ -68,7 +69,6 @@ class DatabaseHandle(object):
 
     if table in self.table_listeners:
       for listener in self.table_listeners[table]:
-        logger.info('HERE')
         threading.Thread(target=listener.OnInsert,
                          args=(table, columns, values),
                          name='OnInsert_%s' % table).start()
